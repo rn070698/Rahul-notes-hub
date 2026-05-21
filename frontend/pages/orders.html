@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>My Orders – Rahul Notes Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/css/global.css">
+<style>
+.orders-table{width:100%;border-collapse:collapse;background:#fff;border-radius:var(--radius-lg);overflow:hidden;border:1px solid var(--border)}
+.orders-table th{background:var(--paper);padding:12px 16px;text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:600}
+.orders-table td{padding:14px 16px;border-bottom:1px solid var(--border);font-size:14px;vertical-align:middle}
+.orders-table tr:last-child td{border-bottom:none}
+.orders-table tr:hover td{background:var(--paper)}
+.status{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
+.status-paid{background:var(--green-light);color:var(--green)}
+.status-pending{background:var(--gold-light);color:var(--gold)}
+.status-failed{background:var(--red-light);color:var(--red)}
+</style>
+</head>
+<body>
+<script src="/assets/js/app.js"></script>
+<script>if(!Auth.isLoggedIn()){sessionStorage.setItem('redirect_after_login',location.href);location.href='/pages/login.html';}renderNav();</script>
+
+<div class="page-header">
+  <div class="container">
+    <h1>📦 My Orders</h1>
+    <p>Your complete order history</p>
+  </div>
+</div>
+
+<div class="container" style="padding-top:28px">
+  <div id="ordersContent"><div class="spinner"></div></div>
+</div>
+
+<script>
+async function loadOrders(){
+  try{
+    const orders=await apiFetch('/payment/orders');
+    const el=document.getElementById('ordersContent');
+    if(!orders.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">📭</div><p>No orders yet. <a href="/index.html" style="color:var(--saffron)">Browse notes →</a></p></div>';return;}
+    el.innerHTML=`<table class="orders-table">
+      <thead><tr><th>Note</th><th>Amount</th><th>Status</th><th>Date</th><th>Action</th></tr></thead>
+      <tbody>${orders.map(o=>`
+        <tr>
+          <td><span style="font-size:18px;margin-right:8px">${o.emoji||'📄'}</span>${o.note_title||'—'}</td>
+          <td style="font-weight:600">₹${o.amount}</td>
+          <td><span class="status status-${o.status}">${o.status.toUpperCase()}</span></td>
+          <td style="color:var(--muted)">${formatDate(o.created_at)}</td>
+          <td>${o.status==='paid'?`<a href="/pages/note-detail.html?slug=${o.note_slug}" class="btn btn-outline btn-sm">View Note</a>`:'—'}</td>
+        </tr>`).join('')}
+      </tbody></table>`;
+  }catch(e){document.getElementById('ordersContent').innerHTML=`<div class="empty-state"><div class="empty-icon">⚠️</div><p>${e.message}</p></div>`;}
+}
+loadOrders();
+</script>
+<script>renderFooter();</script>
+</body>
+</html>

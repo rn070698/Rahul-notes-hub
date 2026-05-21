@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rahul Notes Hub – Civil Services Notes</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/css/global.css">
+<style>
+.hero { background: var(--navy); padding: 64px 2rem 72px; text-align: center; position: relative; overflow: hidden; }
+.hero::before { content:''; position:absolute; inset:0; background:radial-gradient(ellipse at 50% 0%,rgba(232,82,26,0.18) 0%,transparent 70%); pointer-events:none; }
+.hero-badge { display:inline-block; background:rgba(200,150,12,0.15); border:1px solid rgba(200,150,12,0.4); color:var(--gold); font-size:12px; letter-spacing:2px; text-transform:uppercase; padding:5px 16px; border-radius:30px; margin-bottom:18px; }
+.hero h1 { font-family:'Playfair Display',serif; font-size:clamp(32px,5vw,60px); font-weight:900; color:#fff; line-height:1.15; margin-bottom:14px; }
+.hero h1 em { color:var(--saffron); font-style:normal; }
+.hero p { color:rgba(255,255,255,0.6); font-size:16px; max-width:480px; margin:0 auto 28px; }
+.hero-stats { display:flex; align-items:center; justify-content:center; gap:36px; flex-wrap:wrap; }
+.hero-stat strong { display:block; font-size:24px; font-weight:700; color:#fff; }
+.hero-stat span { font-size:11px; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:1px; }
+.hero-divider { width:1px; height:36px; background:rgba(255,255,255,0.12); }
+
+.subjects-bar { background:var(--paper); padding:14px 2rem; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:10px; overflow-x:auto; scrollbar-width:none; }
+.subjects-bar::-webkit-scrollbar { display:none; }
+.subject-pill { padding:6px 16px; border-radius:30px; font-size:13px; font-weight:500; cursor:pointer; border:1.5px solid var(--border); background:#fff; color:var(--text); transition:all 0.2s; flex-shrink:0; white-space:nowrap; }
+.subject-pill:hover,.subject-pill.active { background:var(--navy); color:#fff; border-color:var(--navy); }
+
+.main-layout { max-width:1200px; margin:0 auto; padding:32px 2rem; display:grid; grid-template-columns:240px 1fr; gap:28px; }
+.sidebar-box { background:#fff; border-radius:var(--radius-lg); border:1px solid var(--border); padding:18px; margin-bottom:18px; }
+.sidebar-box-title { font-size:11px; text-transform:uppercase; letter-spacing:1.5px; color:var(--muted); font-weight:600; margin-bottom:12px; }
+.filter-opt { display:flex; align-items:center; gap:8px; padding:5px 0; cursor:pointer; }
+.filter-opt input { accent-color:var(--saffron); cursor:pointer; }
+.filter-opt label { font-size:13px; color:var(--muted); cursor:pointer; flex:1; }
+.filter-opt .cnt { font-size:11px; background:var(--paper); padding:1px 7px; border-radius:30px; color:var(--muted); }
+
+.promo-box { background:var(--navy); border-radius:var(--radius-lg); padding:20px; text-align:center; }
+.promo-box h3 { font-family:'Playfair Display',serif; color:#fff; font-size:17px; margin-bottom:6px; }
+.promo-box p { color:rgba(255,255,255,0.6); font-size:12px; margin-bottom:12px; }
+.promo-btn { display:block; background:var(--gold); color:var(--navy); font-weight:600; font-size:13px; padding:9px; border-radius:8px; }
+
+.notes-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:10px; }
+.notes-header h2 { font-family:'Playfair Display',serif; font-size:22px; }
+.notes-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:16px; }
+
+.bundle-banner { background:var(--navy); border-radius:var(--radius-lg); padding:24px 28px; color:#fff; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:28px; position:relative; overflow:hidden; }
+.bundle-banner::before { content:''; position:absolute; right:-30px; top:-30px; width:160px; height:160px; border-radius:50%; background:rgba(232,82,26,0.15); }
+.bundle-info h3 { font-family:'Playfair Display',serif; font-size:22px; margin-bottom:6px; }
+.bundle-info p { color:rgba(255,255,255,0.6); font-size:13px; max-width:340px; }
+.bundle-tags { display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
+.bundle-tag { background:rgba(255,255,255,0.1); padding:3px 10px; border-radius:20px; font-size:11px; }
+.bundle-cta { text-align:center; flex-shrink:0; }
+.bundle-original { font-size:13px; color:rgba(255,255,255,0.4); text-decoration:line-through; }
+.bundle-price { font-size:32px; font-weight:700; color:var(--gold); margin:2px 0 10px; line-height:1; }
+.bundle-btn { display:block; background:var(--saffron); color:#fff; padding:11px 24px; border-radius:10px; font-weight:600; font-size:14px; }
+
+.load-more { text-align:center; margin-top:28px; }
+
+@media(max-width:768px) { .main-layout { grid-template-columns:1fr; } .sidebar { display:none; } }
+</style>
+</head>
+<body>
+<script src="/assets/js/app.js"></script>
+<script>renderNav();</script>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">🎯 Trusted by 50,000+ Aspirants</div>
+  <h1>Master Civil Services<br>with <em>Curated Notes</em></h1>
+  <p>Comprehensive, exam-ready notes for UPSC, State PSC & other competitive exams — crafted by toppers.</p>
+  <div class="hero-stats">
+    <div class="hero-stat"><strong>2,400+</strong><span>Notes</span></div>
+    <div class="hero-divider"></div>
+    <div class="hero-stat"><strong>50K+</strong><span>Students</span></div>
+    <div class="hero-divider"></div>
+    <div class="hero-stat"><strong>840+</strong><span>Free Notes</span></div>
+    <div class="hero-divider"></div>
+    <div class="hero-stat"><strong>4.9★</strong><span>Avg Rating</span></div>
+  </div>
+</section>
+
+<!-- SUBJECT PILLS -->
+<div class="subjects-bar" id="subjectsBar">
+  <span style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;flex-shrink:0">Browse:</span>
+  <div class="subject-pill active" data-slug="">All Subjects</div>
+</div>
+
+<!-- MAIN -->
+<div class="main-layout">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-box">
+      <div class="sidebar-box-title">Filter Notes</div>
+      <div style="margin-bottom:14px">
+        <div style="font-size:13px;font-weight:500;margin-bottom:8px">Availability</div>
+        <div class="filter-opt"><input type="checkbox" id="ff" checked><label for="ff">Free Notes <span class="cnt">840</span></label></div>
+        <div class="filter-opt"><input type="checkbox" id="fp" checked><label for="fp">Paid Notes <span class="cnt">1,560</span></label></div>
+      </div>
+      <div style="margin-bottom:14px">
+        <div style="font-size:13px;font-weight:500;margin-bottom:8px">Exam Type</div>
+        <div class="filter-opt"><input type="checkbox" id="e1" checked><label for="e1">UPSC CSE</label></div>
+        <div class="filter-opt"><input type="checkbox" id="e2"><label for="e2">State PSC</label></div>
+      </div>
+      <div>
+        <div style="font-size:13px;font-weight:500;margin-bottom:8px">Language</div>
+        <div class="filter-opt"><input type="checkbox" id="l1" checked><label for="l1">English</label></div>
+        <div class="filter-opt"><input type="checkbox" id="l2"><label for="l2">Hindi</label></div>
+      </div>
+      <button class="btn btn-saffron btn-full" style="margin-top:14px" onclick="loadNotes()">Apply Filters</button>
+    </div>
+
+    <div class="promo-box">
+      <h3>Unlock All Notes</h3>
+      <p>2,400+ notes for 12 months unlimited access</p>
+      <a href="/pages/note-detail.html" class="promo-btn">₹999/year — Get Access</a>
+    </div>
+
+    <div class="sidebar-box" id="topSubjectsSidebar"></div>
+  </aside>
+
+  <!-- CONTENT -->
+  <div>
+    <!-- BUNDLE -->
+    <div class="bundle-banner">
+      <div class="bundle-info">
+        <h3>🎯 UPSC Prelims 2025 – Complete Pack</h3>
+        <p>GS1 + GS2 + CSAT + Current Affairs + 5 Previous Year Sets</p>
+        <div class="bundle-tags">
+          <span class="bundle-tag">18 Note Sets</span>
+          <span class="bundle-tag">3,800+ Pages</span>
+          <span class="bundle-tag">Updated Mar 2025</span>
+          <span class="bundle-tag">Hindi + English</span>
+        </div>
+      </div>
+      <div class="bundle-cta">
+        <div class="bundle-original">₹1,800</div>
+        <div class="bundle-price">₹799</div>
+        <a href="#" class="bundle-btn">Get Full Pack →</a>
+      </div>
+    </div>
+
+    <div class="notes-header">
+      <h2>All Notes <span id="notesCount" style="font-size:14px;font-weight:400;color:var(--muted);font-family:'DM Sans',sans-serif"></span></h2>
+      <select class="form-input form-select" id="sortSelect" style="width:auto;padding:7px 32px 7px 12px" onchange="loadNotes()">
+        <option value="popular">Most Popular</option>
+        <option value="newest">Newest First</option>
+        <option value="price_asc">Price: Low to High</option>
+        <option value="rating">Highest Rated</option>
+      </select>
+    </div>
+
+    <div class="notes-grid" id="notesGrid"><div class="spinner"></div></div>
+    <div class="load-more"><button class="btn btn-outline" id="loadMoreBtn" style="display:none" onclick="loadMore()">Load More Notes</button></div>
+  </div>
+</div>
+
+<script>renderFooter();</script>
+
+<script>
+let currentOffset = 0, currentTotal = 0, activeSubject = '';
+const LIMIT = 12;
+
+async function loadSubjects() {
+  try {
+    const subjects = await apiFetch('/notes/subjects');
+    const bar = document.getElementById('subjectsBar');
+    subjects.forEach(s => {
+      const pill = document.createElement('div');
+      pill.className = 'subject-pill';
+      pill.dataset.slug = s.slug;
+      pill.textContent = s.emoji + ' ' + s.name;
+      pill.addEventListener('click', () => {
+        document.querySelectorAll('.subject-pill').forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        activeSubject = s.slug;
+        currentOffset = 0;
+        loadNotes();
+      });
+      bar.appendChild(pill);
+    });
+
+    // Sidebar top subjects
+    const sidebar = document.getElementById('topSubjectsSidebar');
+    if (sidebar) {
+      sidebar.innerHTML = `<div class="sidebar-box-title">Top Subjects</div>` +
+        subjects.slice(0, 6).map(s => `<div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:4px 0;cursor:pointer" onclick="filterSubject('${s.slug}')">${s.emoji} ${s.name}<span style="color:var(--muted);font-size:11px">${s.note_count}</span></div>`).join('');
+    }
+  } catch (e) { console.error(e); }
+}
+
+function filterSubject(slug) {
+  activeSubject = slug;
+  document.querySelectorAll('.subject-pill').forEach(p => { p.classList.toggle('active', p.dataset.slug === slug); });
+  currentOffset = 0; loadNotes();
+}
+
+async function loadNotes(append = false) {
+  if (!append) currentOffset = 0;
+  const sort = document.getElementById('sortSelect')?.value || 'popular';
+  const params = new URLSearchParams({ sort, limit: LIMIT, offset: currentOffset });
+  if (activeSubject) params.set('subject', activeSubject);
+
+  const grid = document.getElementById('notesGrid');
+  if (!append) grid.innerHTML = '<div class="spinner"></div>';
+
+  try {
+    const { notes, total } = await apiFetch('/notes?' + params);
+    currentTotal = total;
+    if (!append) grid.innerHTML = '';
+    if (notes.length === 0 && !append) {
+      grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">📭</div><p>No notes found. Try different filters.</p></div>';
+    } else {
+      notes.forEach(n => { grid.insertAdjacentHTML('beforeend', noteCardHTML(n)); });
+    }
+    document.getElementById('notesCount').textContent = `(${total.toLocaleString()} results)`;
+    const loadMoreBtn = document.getElementById('loadMoreBtn');
+    if (loadMoreBtn) loadMoreBtn.style.display = currentOffset + LIMIT < total ? '' : 'none';
+  } catch (e) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">⚠️</div><p>Could not load notes. Make sure the backend is running.</p></div>`;
+  }
+}
+
+function loadMore() { currentOffset += LIMIT; loadNotes(true); }
+
+// Check URL params
+const urlParams = new URLSearchParams(location.search);
+if (urlParams.get('subject')) activeSubject = urlParams.get('subject');
+if (urlParams.get('search')) document.getElementById('navSearchInput') && (document.getElementById('navSearchInput').value = urlParams.get('search'));
+
+loadSubjects();
+loadNotes();
+</script>
+</body>
+</html>

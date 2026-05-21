@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Free Notes – Rahul Notes Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/css/global.css">
+<style>
+.free-hero{background:var(--green);padding:48px 2rem;text-align:center;color:#fff}
+.free-hero h1{font-family:'Playfair Display',serif;font-size:36px;font-weight:900;margin-bottom:10px}
+.free-hero p{font-size:16px;opacity:.85;max-width:460px;margin:0 auto}
+.notes-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
+</style>
+</head>
+<body>
+<script src="/assets/js/app.js"></script>
+<script>renderNav();</script>
+
+<div class="free-hero">
+  <div style="font-size:48px;margin-bottom:10px">🆓</div>
+  <h1>Free Study Notes</h1>
+  <p>840+ notes absolutely free. No payment, no login required.</p>
+</div>
+
+<div class="container" style="padding-top:32px">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+    <h2 style="font-family:'Playfair Display',serif;font-size:22px">All Free Notes <span id="freeCount" style="font-size:14px;font-weight:400;color:var(--muted)"></span></h2>
+    <select class="form-input form-select" id="subjFilter" style="width:auto" onchange="loadFree()">
+      <option value="">All Subjects</option>
+    </select>
+  </div>
+  <div class="notes-grid" id="freeGrid"><div class="spinner"></div></div>
+  <div style="text-align:center;margin-top:24px"><button class="btn btn-outline" id="moreBtn" style="display:none" onclick="loadMore()">Load More</button></div>
+</div>
+
+<script>
+let offset=0;
+async function loadSubjects(){
+  const subs=await apiFetch('/notes/subjects');
+  const sel=document.getElementById('subjFilter');
+  subs.forEach(s=>sel.insertAdjacentHTML('beforeend',`<option value="${s.slug}">${s.emoji} ${s.name}</option>`));
+}
+async function loadFree(append=false){
+  if(!append)offset=0;
+  const subj=document.getElementById('subjFilter').value;
+  const params=new URLSearchParams({is_free:'true',limit:12,offset});
+  if(subj)params.set('subject',subj);
+  if(!append)document.getElementById('freeGrid').innerHTML='<div class="spinner"></div>';
+  try{
+    const {notes,total}=await apiFetch('/notes?'+params);
+    if(!append)document.getElementById('freeGrid').innerHTML='';
+    document.getElementById('freeCount').textContent=`(${total} notes)`;
+    if(!notes.length&&!append){document.getElementById('freeGrid').innerHTML='<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">📭</div><p>No free notes found.</p></div>';return;}
+    notes.forEach(n=>document.getElementById('freeGrid').insertAdjacentHTML('beforeend',noteCardHTML(n)));
+    document.getElementById('moreBtn').style.display=offset+12<total?'':'none';
+  }catch(e){document.getElementById('freeGrid').innerHTML=`<div class="empty-state" style="grid-column:1/-1"><p>${e.message}</p></div>`;}
+}
+function loadMore(){offset+=12;loadFree(true);}
+loadSubjects();loadFree();
+</script>
+<script>renderFooter();</script>
+</body>
+</html>

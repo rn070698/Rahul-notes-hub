@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>My Library – Rahul Notes Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/css/global.css">
+<style>
+.lib-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:18px;margin-top:24px}
+.lib-card{background:#fff;border-radius:var(--radius-lg);border:1px solid var(--border);overflow:hidden;transition:transform .2s,box-shadow .2s}
+.lib-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-md)}
+.lib-thumb{height:120px;display:flex;align-items:center;justify-content:center;font-size:44px;position:relative}
+.lib-body{padding:14px}
+.lib-subject{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--saffron);font-weight:600;margin-bottom:4px}
+.lib-title{font-size:14px;font-weight:600;line-height:1.3;margin-bottom:8px}
+.lib-meta{font-size:11px;color:var(--muted);margin-bottom:10px}
+.tabs{display:flex;gap:4px;margin-top:24px;border-bottom:2px solid var(--border);padding-bottom:0}
+.tab{padding:10px 20px;font-size:14px;font-weight:500;cursor:pointer;border-radius:8px 8px 0 0;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-2px}
+.tab.active{color:var(--saffron);border-bottom-color:var(--saffron);background:var(--saffron-light)}
+</style>
+</head>
+<body>
+<script src="/assets/js/app.js"></script>
+<script>if(!Auth.isLoggedIn()){sessionStorage.setItem('redirect_after_login',location.href);location.href='/pages/login.html';}renderNav();</script>
+
+<div class="page-header">
+  <div class="container">
+    <h1>📚 My Library</h1>
+    <p>All your purchased and claimed notes in one place</p>
+  </div>
+</div>
+
+<div class="container" style="padding-top:0">
+  <div class="tabs">
+    <div class="tab active" onclick="showTab('purchased',this)">Purchased Notes</div>
+    <div class="tab" onclick="showTab('wishlist',this)">Wishlist</div>
+  </div>
+
+  <div id="purchasedTab">
+    <div id="libGrid" class="lib-grid"><div class="spinner"></div></div>
+  </div>
+  <div id="wishlistTab" style="display:none">
+    <div class="empty-state"><div class="empty-icon">🤍</div><p>Wishlist coming soon!</p></div>
+  </div>
+</div>
+
+<script>
+const thumbBg={polity:'linear-gradient(135deg,#E8F4FB,#C5DCF0)',history:'linear-gradient(135deg,#FDF3E3,#F0D99E)',geography:'linear-gradient(135deg,#E8F5ED,#B7DABC)',economics:'linear-gradient(135deg,#FBE8F0,#F0B7CF)','science-tech':'linear-gradient(135deg,#EBE8FB,#C8B7F0)',ethics:'linear-gradient(135deg,#FFF5E8,#F5D5A0)','current-affairs':'linear-gradient(135deg,#E8FBF8,#A0E8DF)',environment:'linear-gradient(135deg,#F2FBE8,#C0E890)'};
+
+async function loadLibrary(){
+  try{
+    const notes=await apiFetch('/payment/my-library');
+    const grid=document.getElementById('libGrid');
+    if(!notes.length){grid.innerHTML='<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">📭</div><p>No notes yet. <a href="/index.html" style="color:var(--saffron)">Browse notes →</a></p></div>';return;}
+    grid.innerHTML=notes.map(n=>`
+      <div class="lib-card" onclick="window.location.href='/pages/note-detail.html?slug=${n.slug}'">
+        <div class="lib-thumb" style="background:${thumbBg[n.subject_slug]||'linear-gradient(135deg,#f0ede8,#e0dcd5)'}">
+          <span>${n.emoji||'📄'}</span>
+          <span style="position:absolute;bottom:6px;right:8px;background:var(--green-light);color:var(--green);font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px">✓ Owned</span>
+        </div>
+        <div class="lib-body">
+          <div class="lib-subject">${n.subject_name||''}</div>
+          <div class="lib-title">${n.title}</div>
+          <div class="lib-meta">📄 ${n.pages} pages · Purchased ${formatDate(n.purchased_at)}</div>
+          <button class="btn btn-green btn-full" onclick="event.stopPropagation();downloadNote(${n.id})">⬇ Download PDF</button>
+        </div>
+      </div>`).join('');
+  }catch(e){document.getElementById('libGrid').innerHTML=`<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">⚠️</div><p>${e.message}</p></div>`;}
+}
+
+async function downloadNote(id){
+  try{await apiFetch('/notes/'+id+'/download');toast('Download started! ✅','success');}
+  catch(e){toast(e.message,'error');}
+}
+
+function showTab(name,el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('purchasedTab').style.display=name==='purchased'?'':'none';
+  document.getElementById('wishlistTab').style.display=name==='wishlist'?'':'none';
+}
+
+loadLibrary();
+</script>
+<script>renderFooter();</script>
+</body>
+</html>

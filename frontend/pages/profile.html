@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Profile – Rahul Notes Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/css/global.css">
+<style>
+.profile-layout{max-width:760px;margin:36px auto;padding:0 2rem;display:grid;gap:24px}
+.profile-card{background:#fff;border-radius:var(--radius-lg);border:1px solid var(--border);padding:28px}
+.profile-avatar{width:72px;height:72px;border-radius:50%;background:var(--saffron);color:#fff;font-size:28px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-bottom:14px}
+.profile-name{font-family:'Playfair Display',serif;font-size:22px;font-weight:700}
+.profile-email{color:var(--muted);font-size:14px;margin-top:4px}
+.profile-badge{display:inline-block;margin-top:8px;background:var(--navy);color:#fff;font-size:11px;padding:3px 12px;border-radius:20px}
+.stat-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:20px}
+.stat-card{background:var(--paper);border-radius:10px;padding:14px;text-align:center}
+.stat-card strong{display:block;font-size:22px;font-weight:700;color:var(--navy)}
+.stat-card span{font-size:11px;color:var(--muted)}
+</style>
+</head>
+<body>
+<script src="/assets/js/app.js"></script>
+<script>if(!Auth.isLoggedIn()){sessionStorage.setItem('redirect_after_login',location.href);location.href='/pages/login.html';}renderNav();</script>
+
+<div class="profile-layout">
+  <div class="profile-card" id="profileCard"><div class="spinner"></div></div>
+  <div class="profile-card">
+    <h3 style="font-size:16px;font-weight:600;margin-bottom:20px">Update Profile</h3>
+    <div class="form-group"><label class="form-label">Full Name</label><input class="form-input" type="text" id="nameInput"></div>
+    <div style="border-top:1px solid var(--border);padding-top:18px;margin-top:4px">
+      <div style="font-size:13px;font-weight:600;margin-bottom:14px">Change Password</div>
+      <div class="form-group"><label class="form-label">Current Password</label><input class="form-input" type="password" id="curPass" placeholder="Current password"></div>
+      <div class="form-group"><label class="form-label">New Password</label><input class="form-input" type="password" id="newPass" placeholder="New password (min 6 chars)"></div>
+    </div>
+    <button class="btn btn-saffron" onclick="saveProfile()">Save Changes</button>
+  </div>
+</div>
+
+<script>
+async function loadProfile(){
+  try{
+    const u=await apiFetch('/auth/me');
+    const lib=await apiFetch('/payment/my-library');
+    const orders=await apiFetch('/payment/orders');
+    const paid=orders.filter(o=>o.status==='paid').length;
+    document.getElementById('profileCard').innerHTML=`
+      <div class="profile-avatar">${u.name[0].toUpperCase()}</div>
+      <div class="profile-name">${u.name}</div>
+      <div class="profile-email">${u.email}</div>
+      <span class="profile-badge">${u.role==='admin'?'⚙️ Admin':'👤 Student'}</span>
+      <div class="stat-cards">
+        <div class="stat-card"><strong>${lib.length}</strong><span>Notes Owned</span></div>
+        <div class="stat-card"><strong>${paid}</strong><span>Orders Placed</span></div>
+        <div class="stat-card"><strong>${formatDate(u.created_at)}</strong><span>Member Since</span></div>
+      </div>`;
+    document.getElementById('nameInput').value=u.name;
+  }catch(e){toast(e.message,'error');}
+}
+async function saveProfile(){
+  const name=document.getElementById('nameInput').value.trim();
+  const cur=document.getElementById('curPass').value;
+  const nw=document.getElementById('newPass').value;
+  const body={name};
+  if(cur&&nw){body.currentPassword=cur;body.newPassword=nw;}
+  try{
+    await apiFetch('/auth/profile',{method:'PUT',body});
+    toast('Profile updated!','success');
+    const u=Auth.getUser();Auth.setAuth(Auth.getToken(),{...u,name});
+  }catch(e){toast(e.message,'error');}
+}
+loadProfile();
+</script>
+<script>renderFooter();</script>
+</body>
+</html>

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login – Rahul Notes Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/css/global.css">
+<style>
+body { background: var(--navy); min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.auth-box { background: #fff; border-radius: 20px; padding: 40px; width: 100%; max-width: 420px; box-shadow: var(--shadow-lg); }
+.auth-logo { text-align: center; margin-bottom: 28px; }
+.auth-logo .logo-icon { width: 52px; height: 52px; font-size: 26px; margin: 0 auto 10px; }
+.auth-logo h2 { font-family: 'Playfair Display', serif; font-size: 22px; }
+.auth-logo p { color: var(--muted); font-size: 13px; margin-top: 4px; }
+.auth-divider { display: flex; align-items: center; gap: 12px; margin: 18px 0; color: var(--muted); font-size: 12px; }
+.auth-divider::before, .auth-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.auth-footer { text-align: center; margin-top: 20px; font-size: 13px; color: var(--muted); }
+.auth-footer a { color: var(--saffron); font-weight: 500; }
+</style>
+</head>
+<body>
+<script src="/assets/js/app.js"></script>
+<div class="auth-box">
+  <div class="auth-logo">
+    <div class="logo-icon">R</div>
+    <h2>Welcome Back</h2>
+    <p>Login to access your notes library</p>
+  </div>
+
+  <div class="form-group">
+    <label class="form-label">Email Address</label>
+    <input class="form-input" type="email" id="email" placeholder="you@example.com" />
+  </div>
+  <div class="form-group">
+    <label class="form-label">Password</label>
+    <input class="form-input" type="password" id="password" placeholder="Your password" />
+  </div>
+  <div style="text-align:right;margin:-8px 0 14px"><a href="#" style="font-size:12px;color:var(--saffron)">Forgot password?</a></div>
+
+  <button class="btn btn-saffron btn-full btn-lg" id="loginBtn" onclick="doLogin()">Login to My Account</button>
+
+  <div class="auth-divider">or</div>
+
+  <div class="auth-footer">Don't have an account? <a href="/pages/register.html">Sign up free</a></div>
+  <div class="auth-footer" style="margin-top:8px"><a href="/index.html">← Back to Browse</a></div>
+</div>
+
+<script>
+async function doLogin() {
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  const btn = document.getElementById('loginBtn');
+  if (!email || !password) { toast('Please fill in all fields', 'error'); return; }
+  btn.textContent = 'Logging in…'; btn.disabled = true;
+  try {
+    const data = await apiFetch('/auth/login', { method: 'POST', body: { email, password } });
+    Auth.setAuth(data.token, data.user);
+    toast('Welcome back, ' + data.user.name + '!', 'success');
+    const redirect = sessionStorage.getItem('redirect_after_login') || '/index.html';
+    sessionStorage.removeItem('redirect_after_login');
+    setTimeout(() => window.location.href = redirect, 800);
+  } catch (e) {
+    toast(e.message, 'error');
+    btn.textContent = 'Login to My Account'; btn.disabled = false;
+  }
+}
+document.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+if (Auth.isLoggedIn()) window.location.href = '/index.html';
+</script>
+</body>
+</html>

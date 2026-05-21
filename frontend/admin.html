@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Admin Panel – Rahul Notes Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/css/global.css">
+<style>
+body{display:flex;min-height:100vh;flex-direction:column}
+.admin-shell{display:flex;flex:1}
+.sidebar{width:220px;background:var(--navy);padding:20px 0;flex-shrink:0;min-height:calc(100vh - 64px)}
+.sidebar-logo{padding:0 20px 20px;border-bottom:1px solid rgba(255,255,255,0.08);margin-bottom:10px}
+.sidebar-logo span{font-family:'Playfair Display',serif;color:#fff;font-size:15px;font-weight:700}
+.sidebar-logo small{display:block;color:rgba(255,255,255,0.4);font-size:10px;letter-spacing:1px;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 20px;color:rgba(255,255,255,0.6);font-size:13px;cursor:pointer;transition:all .2s;border-left:3px solid transparent}
+.nav-item:hover,.nav-item.active{color:#fff;background:rgba(255,255,255,0.07);border-left-color:var(--saffron)}
+.admin-content{flex:1;padding:28px;background:var(--cream);overflow-y:auto}
+.admin-page{display:none}.admin-page.active{display:block}
+.page-title{font-family:'Playfair Display',serif;font-size:24px;font-weight:700;margin-bottom:24px}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:28px}
+.stat-card{background:#fff;border-radius:var(--radius-md);border:1px solid var(--border);padding:18px}
+.stat-card .val{font-size:26px;font-weight:700;color:var(--navy);margin-bottom:4px}
+.stat-card .lbl{font-size:12px;color:var(--muted)}
+.stat-card .icon{font-size:24px;float:right;margin-top:-4px}
+.data-table{width:100%;border-collapse:collapse;background:#fff;border-radius:var(--radius-lg);overflow:hidden;border:1px solid var(--border)}
+.data-table th{background:var(--paper);padding:11px 14px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:600}
+.data-table td{padding:12px 14px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle}
+.data-table tr:last-child td{border:none}
+.data-table tr:hover td{background:#fafafa}
+.badge-pill{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600}
+.pill-paid{background:var(--green-light);color:var(--green)}
+.pill-pending{background:var(--gold-light);color:var(--gold)}
+.pill-failed{background:var(--red-light);color:var(--red)}
+.pill-admin{background:#EBE8FB;color:#5B3FA0}
+.pill-user{background:var(--paper);color:var(--muted)}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:500;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-bg.open{display:flex}
+.modal-box{background:#fff;border-radius:var(--radius-lg);padding:28px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto}
+.modal-title{font-family:'Playfair Display',serif;font-size:18px;margin-bottom:20px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.search-bar{display:flex;gap:10px;margin-bottom:16px}
+.search-bar input{flex:1}
+.pagination{display:flex;align-items:center;gap:8px;margin-top:16px;justify-content:center}
+.page-btn{padding:6px 12px;border-radius:6px;border:1px solid var(--border);cursor:pointer;font-size:13px;background:#fff}
+.page-btn.active,.page-btn:hover{background:var(--navy);color:#fff;border-color:var(--navy)}
+</style>
+</head>
+<body>
+<script src="/assets/js/app.js"></script>
+<script>
+if(!Auth.isLoggedIn()||!Auth.isAdmin()){alert('Admin access required');location.href='/pages/login.html';}
+</script>
+
+<!-- TOP NAV -->
+<nav>
+  <a href="/index.html" class="nav-logo">
+    <div class="logo-icon">R</div>
+    <div class="logo-text">Admin Panel <small>Rahul Notes Hub</small></div>
+  </a>
+  <div class="nav-links">
+    <a href="/index.html" class="nav-link">← View Site</a>
+    <div class="nav-avatar" id="navAv" onclick="document.getElementById('navDrop').classList.toggle('open')" style="cursor:pointer"></div>
+    <div class="nav-dropdown" id="navDrop">
+      <a href="/pages/profile.html">👤 Profile</a>
+      <hr>
+      <a href="#" onclick="Auth.clear();location.href='/pages/login.html'">🚪 Logout</a>
+    </div>
+  </div>
+</nav>
+
+<div class="admin-shell">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo"><span>⚙️ Admin</span><small>Control Panel</small></div>
+    <div class="nav-item active" onclick="showPage('dashboard',this)">📊 Dashboard</div>
+    <div class="nav-item" onclick="showPage('notes',this)">📄 Notes</div>
+    <div class="nav-item" onclick="showPage('users',this)">👥 Users</div>
+    <div class="nav-item" onclick="showPage('orders',this)">📦 Orders</div>
+    <div class="nav-item" onclick="showPage('coupons',this)">🎫 Coupons</div>
+    <div class="nav-item" onclick="showPage('subjects',this)">📚 Subjects</div>
+  </aside>
+
+  <!-- CONTENT -->
+  <main class="admin-content">
+
+    <!-- DASHBOARD -->
+    <div class="admin-page active" id="page-dashboard">
+      <div class="page-title">📊 Dashboard</div>
+      <div class="stats-grid" id="statsGrid"><div class="spinner"></div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+        <div>
+          <div class="section-header"><strong>Recent Orders</strong></div>
+          <div id="recentOrdersTable"></div>
+        </div>
+        <div>
+          <div class="section-header"><strong>Top Notes</strong></div>
+          <div id="topNotesTable"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NOTES -->
+    <div class="admin-page" id="page-notes">
+      <div class="section-header">
+        <div class="page-title" style="margin:0">📄 Notes</div>
+        <button class="btn btn-saffron" onclick="openNoteModal()">+ Add Note</button>
+      </div>
+      <div class="search-bar">
+        <input class="form-input" id="notesSearch" placeholder="Search notes…" oninput="loadAdminNotes()">
+      </div>
+      <div id="notesTableWrap"></div>
+    </div>
+
+    <!-- USERS -->
+    <div class="admin-page" id="page-users">
+      <div class="page-title">👥 Users</div>
+      <div class="search-bar">
+        <input class="form-input" id="usersSearch" placeholder="Search users…" oninput="loadUsers()">
+      </div>
+      <div id="usersTableWrap"></div>
+    </div>
+
+    <!-- ORDERS -->
+    <div class="admin-page" id="page-orders">
+      <div class="page-title">📦 Orders</div>
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <button class="btn btn-outline btn-sm" onclick="loadAdminOrders('')">All</button>
+        <button class="btn btn-outline btn-sm" onclick="loadAdminOrders('paid')">Paid</button>
+        <button class="btn btn-outline btn-sm" onclick="loadAdminOrders('pending')">Pending</button>
+        <button class="btn btn-outline btn-sm" onclick="loadAdminOrders('failed')">Failed</button>
+      </div>
+      <div id="ordersTableWrap"></div>
+    </div>
+
+    <!-- COUPONS -->
+    <div class="admin-page" id="page-coupons">
+      <div class="section-header">
+        <div class="page-title" style="margin:0">🎫 Coupons</div>
+        <button class="btn btn-saffron" onclick="openCouponModal()">+ New Coupon</button>
+      </div>
+      <div id="couponsTableWrap"></div>
+    </div>
+
+    <!-- SUBJECTS -->
+    <div class="admin-page" id="page-subjects">
+      <div class="section-header">
+        <div class="page-title" style="margin:0">📚 Subjects</div>
+        <button class="btn btn-saffron" onclick="openSubjectModal()">+ New Subject</button>
+      </div>
+      <div id="subjectsTableWrap"></div>
+    </div>
+
+  </main>
+</div>
+
+<!-- NOTE MODAL -->
+<div class="modal-bg" id="noteModal">
+  <div class="modal-box">
+    <div class="modal-title" id="noteModalTitle">Add Note</div>
+    <input type="hidden" id="editNoteId">
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Title *</label><input class="form-input" id="nTitle" placeholder="Note title"></div>
+      <div class="form-group"><label class="form-label">Slug *</label><input class="form-input" id="nSlug" placeholder="url-friendly-slug"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Description</label><textarea class="form-input" id="nDesc" rows="2" placeholder="Short description"></textarea></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Subject</label><select class="form-input form-select" id="nSubject"></select></div>
+      <div class="form-group"><label class="form-label">Emoji</label><input class="form-input" id="nEmoji" value="📄" style="font-size:20px"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Price (₹)</label><input class="form-input" type="number" id="nPrice" value="0" min="0"></div>
+      <div class="form-group"><label class="form-label">Pages</label><input class="form-input" type="number" id="nPages" value="0" min="0"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Language</label><select class="form-input form-select" id="nLang"><option>English</option><option>Hindi</option></select></div>
+      <div class="form-group"><label class="form-label">Exam Type</label><select class="form-input form-select" id="nExam"><option>UPSC</option><option>State PSC</option><option>UPSC Prelims</option><option>UPSC Mains</option></select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Tags (comma separated)</label><input class="form-input" id="nTags" placeholder="polity,articles,constitution"></div>
+      <div class="form-group" style="display:flex;align-items:center;gap:10px;padding-top:24px">
+        <input type="checkbox" id="nFree" style="width:16px;height:16px;accent-color:var(--green)">
+        <label for="nFree" style="font-size:14px;cursor:pointer">This note is FREE</label>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:8px">
+      <button class="btn btn-saffron" onclick="saveNote()">Save Note</button>
+      <button class="btn btn-outline" onclick="closeModal('noteModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- COUPON MODAL -->
+<div class="modal-bg" id="couponModal">
+  <div class="modal-box">
+    <div class="modal-title">Create Coupon</div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Coupon Code</label><input class="form-input" id="cCode" placeholder="SAVE50" style="text-transform:uppercase"></div>
+      <div class="form-group"><label class="form-label">Type</label><select class="form-input form-select" id="cType"><option value="percent">Percent (%)</option><option value="flat">Flat (₹)</option></select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Discount Value</label><input class="form-input" type="number" id="cValue" placeholder="30"></div>
+      <div class="form-group"><label class="form-label">Min Order (₹)</label><input class="form-input" type="number" id="cMin" value="0"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Max Uses</label><input class="form-input" type="number" id="cMax" value="100"></div>
+      <div class="form-group"><label class="form-label">Expires At</label><input class="form-input" type="date" id="cExpiry"></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:8px">
+      <button class="btn btn-saffron" onclick="saveCoupon()">Create Coupon</button>
+      <button class="btn btn-outline" onclick="closeModal('couponModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- SUBJECT MODAL -->
+<div class="modal-bg" id="subjectModal">
+  <div class="modal-box">
+    <div class="modal-title">Add Subject</div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Name</label><input class="form-input" id="sName" placeholder="Indian Economy"></div>
+      <div class="form-group"><label class="form-label">Slug</label><input class="form-input" id="sSlug" placeholder="indian-economy"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Emoji</label><input class="form-input" id="sEmoji" value="📄"></div>
+      <div class="form-group"><label class="form-label">Sort Order</label><input class="form-input" type="number" id="sOrder" value="10"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Description</label><input class="form-input" id="sDesc" placeholder="Brief description"></div>
+    <div style="display:flex;gap:10px;margin-top:8px">
+      <button class="btn btn-saffron" onclick="saveSubject()">Save</button>
+      <button class="btn btn-outline" onclick="closeModal('subjectModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const u=Auth.getUser();
+document.getElementById('navAv').textContent=u?.name[0]||'A';
+document.addEventListener('click',e=>{if(!e.target.closest('.nav-user-menu')&&!e.target.closest('#navAv'))document.getElementById('navDrop').classList.remove('open');});
+
+function showPage(name,el){
+  document.querySelectorAll('.admin-page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  el.classList.add('active');
+  const loaders={dashboard:loadDashboard,notes:loadAdminNotes,users:loadUsers,orders:()=>loadAdminOrders(''),coupons:loadCoupons,subjects:loadAdminSubjects};
+  loaders[name]&&loaders[name]();
+}
+
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.modal-bg').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
+
+/* ── DASHBOARD ── */
+async function loadDashboard(){
+  try{
+    const d=await apiFetch('/admin/dashboard');
+    document.getElementById('statsGrid').innerHTML=[
+      {icon:'📄',val:d.totalNotes,lbl:'Total Notes'},
+      {icon:'👥',val:d.totalUsers,lbl:'Users'},
+      {icon:'📦',val:d.totalOrders,lbl:'Orders Paid'},
+      {icon:'💰',val:'₹'+d.totalRevenue.toFixed(0),lbl:'Revenue'},
+      {icon:'⬇',val:(d.totalDownloads||0).toLocaleString(),lbl:'Downloads'},
+      {icon:'🆓',val:d.freeNotes,lbl:'Free Notes'},
+    ].map(s=>`<div class="stat-card"><span class="icon">${s.icon}</span><div class="val">${s.val}</div><div class="lbl">${s.lbl}</div></div>`).join('');
+
+    document.getElementById('recentOrdersTable').innerHTML=`<table class="data-table">
+      <thead><tr><th>User</th><th>Note</th><th>Amount</th><th>Date</th></tr></thead>
+      <tbody>${(d.recentOrders||[]).map(o=>`<tr><td>${o.user_name}</td><td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${o.note_title||'—'}</td><td>₹${o.amount}</td><td>${formatDate(o.paid_at)}</td></tr>`).join('')||'<tr><td colspan="4" style="text-align:center;color:var(--muted)">No orders yet</td></tr>'}</tbody></table>`;
+
+    document.getElementById('topNotesTable').innerHTML=`<table class="data-table">
+      <thead><tr><th>Note</th><th>Downloads</th><th>Rating</th></tr></thead>
+      <tbody>${(d.topNotes||[]).map(n=>`<tr><td>${n.emoji} ${n.title}</td><td>${(n.downloads||0).toLocaleString()}</td><td>★${n.rating}</td></tr>`).join('')}</tbody></table>`;
+  }catch(e){document.getElementById('statsGrid').innerHTML=`<p style="color:var(--red)">${e.message}</p>`;}
+}
+
+/* ── NOTES ── */
+let subjectsList=[];
+async function loadAdminNotes(){
+  const search=document.getElementById('notesSearch')?.value||'';
+  try{
+    const {notes}=await apiFetch('/admin/notes?search='+encodeURIComponent(search));
+    document.getElementById('notesTableWrap').innerHTML=`<table class="data-table">
+      <thead><tr><th>Note</th><th>Subject</th><th>Price</th><th>Type</th><th>Pages</th><th>Downloads</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody>${notes.map(n=>`<tr>
+        <td><span style="font-size:16px">${n.emoji}</span> <strong>${n.title}</strong></td>
+        <td>${n.subject_name||'—'}</td>
+        <td>${n.is_free?'<span class="badge-pill pill-paid">FREE</span>':'₹'+n.price}</td>
+        <td><span class="badge-pill ${n.is_free?'pill-paid':'pill-pending'}">${n.is_free?'Free':'Paid'}</span></td>
+        <td>${n.pages}</td>
+        <td>${(n.downloads||0).toLocaleString()}</td>
+        <td><span class="badge-pill ${n.is_published?'pill-paid':'pill-failed'}">${n.is_published?'Live':'Hidden'}</span></td>
+        <td style="white-space:nowrap">
+          <button class="btn btn-outline btn-sm" onclick="editNote(${JSON.stringify(n).replace(/"/g,'&quot;')})">Edit</button>
+          <button class="btn btn-sm" style="background:var(--red-light);color:var(--red);margin-left:4px" onclick="deleteNote(${n.id})">Hide</button>
+        </td>
+      </tr>`).join('')}</tbody></table>`;
+  }catch(e){document.getElementById('notesTableWrap').innerHTML=`<p style="color:var(--red)">${e.message}</p>`;}
+}
+
+async function loadSubjectsForModal(){
+  if(subjectsList.length)return;
+  subjectsList=await apiFetch('/admin/subjects');
+  const sel=document.getElementById('nSubject');
+  sel.innerHTML=subjectsList.map(s=>`<option value="${s.id}">${s.emoji} ${s.name}</option>`).join('');
+}
+
+async function openNoteModal(note=null){
+  await loadSubjectsForModal();
+  document.getElementById('noteModalTitle').textContent=note?'Edit Note':'Add Note';
+  document.getElementById('editNoteId').value=note?.id||'';
+  document.getElementById('nTitle').value=note?.title||'';
+  document.getElementById('nSlug').value=note?.slug||'';
+  document.getElementById('nDesc').value=note?.description||'';
+  document.getElementById('nEmoji').value=note?.emoji||'📄';
+  document.getElementById('nPrice').value=note?.price||0;
+  document.getElementById('nPages').value=note?.pages||0;
+  document.getElementById('nTags').value=note?.tags||'';
+  document.getElementById('nFree').checked=!!note?.is_free;
+  if(note?.subject_id) document.getElementById('nSubject').value=note.subject_id;
+  openModal('noteModal');
+}
+
+function editNote(n){openNoteModal(n);}
+
+async function saveNote(){
+  const id=document.getElementById('editNoteId').value;
+  const body={
+    title:document.getElementById('nTitle').value,slug:document.getElementById('nSlug').value,
+    description:document.getElementById('nDesc').value,subject_id:document.getElementById('nSubject').value,
+    emoji:document.getElementById('nEmoji').value,price:document.getElementById('nPrice').value,
+    pages:document.getElementById('nPages').value,language:document.getElementById('nLang').value,
+    exam_type:document.getElementById('nExam').value,tags:document.getElementById('nTags').value,
+    is_free:document.getElementById('nFree').checked?1:0,is_published:1
+  };
+  if(!body.title||!body.slug){toast('Title and slug required','error');return;}
+  try{
+    if(id) await apiFetch('/admin/notes/'+id,{method:'PUT',body});
+    else   await apiFetch('/admin/notes',{method:'POST',body});
+    toast(id?'Note updated!':'Note created!','success');
+    closeModal('noteModal');loadAdminNotes();
+  }catch(e){toast(e.message,'error');}
+}
+
+async function deleteNote(id){
+  if(!confirm('Hide this note from the site?'))return;
+  try{await apiFetch('/admin/notes/'+id,{method:'DELETE'});toast('Note hidden','info');loadAdminNotes();}
+  catch(e){toast(e.message,'error');}
+}
+
+/* ── USERS ── */
+async function loadUsers(){
+  const search=document.getElementById('usersSearch')?.value||'';
+  try{
+    const {users}=await apiFetch('/admin/users?search='+encodeURIComponent(search));
+    document.getElementById('usersTableWrap').innerHTML=`<table class="data-table">
+      <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Purchases</th><th>Spent</th><th>Joined</th><th>Action</th></tr></thead>
+      <tbody>${users.map(u=>`<tr>
+        <td><strong>${u.name}</strong></td><td>${u.email}</td>
+        <td><span class="badge-pill ${u.role==='admin'?'pill-admin':'pill-user'}">${u.role}</span></td>
+        <td>${u.purchases_count}</td><td>₹${u.total_spent.toFixed(0)}</td>
+        <td>${formatDate(u.created_at)}</td>
+        <td><button class="btn btn-outline btn-sm" onclick="toggleRole(${u.id},'${u.role}')">${u.role==='admin'?'Make User':'Make Admin'}</button></td>
+      </tr>`).join('')}</tbody></table>`;
+  }catch(e){document.getElementById('usersTableWrap').innerHTML=`<p style="color:var(--red)">${e.message}</p>`;}
+}
+
+async function toggleRole(id,cur){
+  const newRole=cur==='admin'?'user':'admin';
+  if(!confirm(`Change role to ${newRole}?`))return;
+  try{await apiFetch('/admin/users/'+id+'/role',{method:'PUT',body:{role:newRole}});toast('Role updated','success');loadUsers();}
+  catch(e){toast(e.message,'error');}
+}
+
+/* ── ORDERS ── */
+async function loadAdminOrders(status=''){
+  try{
+    const {orders}=await apiFetch('/admin/orders'+(status?'?status='+status:''));
+    document.getElementById('ordersTableWrap').innerHTML=`<table class="data-table">
+      <thead><tr><th>User</th><th>Note</th><th>Amount</th><th>Status</th><th>Date</th><th>Payment ID</th></tr></thead>
+      <tbody>${orders.map(o=>`<tr>
+        <td>${o.user_name}<br><span style="font-size:11px;color:var(--muted)">${o.email}</span></td>
+        <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${o.note_title||'—'}</td>
+        <td style="font-weight:600">₹${o.amount}</td>
+        <td><span class="badge-pill pill-${o.status}">${o.status}</span></td>
+        <td>${formatDate(o.created_at)}</td>
+        <td style="font-size:11px;color:var(--muted)">${o.razorpay_payment_id||'—'}</td>
+      </tr>`).join('')||'<tr><td colspan="6" style="text-align:center;color:var(--muted)">No orders</td></tr>'}</tbody></table>`;
+  }catch(e){document.getElementById('ordersTableWrap').innerHTML=`<p style="color:var(--red)">${e.message}</p>`;}
+}
+
+/* ── COUPONS ── */
+async function loadCoupons(){
+  try{
+    const coupons=await apiFetch('/admin/coupons');
+    document.getElementById('couponsTableWrap').innerHTML=`<table class="data-table">
+      <thead><tr><th>Code</th><th>Type</th><th>Discount</th><th>Min Order</th><th>Used/Max</th><th>Status</th><th>Expires</th><th>Action</th></tr></thead>
+      <tbody>${coupons.map(c=>`<tr>
+        <td><strong>${c.code}</strong></td>
+        <td>${c.discount_type==='percent'?'Percent':'Flat'}</td>
+        <td>${c.discount_type==='percent'?c.discount_value+'%':'₹'+c.discount_value}</td>
+        <td>₹${c.min_amount}</td>
+        <td>${c.used_count}/${c.max_uses}</td>
+        <td><span class="badge-pill ${c.is_active?'pill-paid':'pill-failed'}">${c.is_active?'Active':'Inactive'}</span></td>
+        <td>${c.expires_at?formatDate(c.expires_at):'Never'}</td>
+        <td><button class="btn btn-outline btn-sm" onclick="toggleCoupon(${c.id},${c.is_active})">${c.is_active?'Disable':'Enable'}</button></td>
+      </tr>`).join('')}</tbody></table>`;
+  }catch(e){document.getElementById('couponsTableWrap').innerHTML=`<p style="color:var(--red)">${e.message}</p>`;}
+}
+
+function openCouponModal(){openModal('couponModal');}
+
+async function saveCoupon(){
+  const body={code:document.getElementById('cCode').value,discount_type:document.getElementById('cType').value,discount_value:document.getElementById('cValue').value,min_amount:document.getElementById('cMin').value,max_uses:document.getElementById('cMax').value,expires_at:document.getElementById('cExpiry').value||null};
+  if(!body.code||!body.discount_value){toast('Code and discount value required','error');return;}
+  try{await apiFetch('/admin/coupons',{method:'POST',body});toast('Coupon created!','success');closeModal('couponModal');loadCoupons();}
+  catch(e){toast(e.message,'error');}
+}
+
+async function toggleCoupon(id,cur){
+  try{await apiFetch('/admin/coupons/'+id,{method:'PUT',body:{is_active:!cur}});toast('Coupon updated','info');loadCoupons();}
+  catch(e){toast(e.message,'error');}
+}
+
+/* ── SUBJECTS ── */
+async function loadAdminSubjects(){
+  try{
+    const subs=await apiFetch('/admin/subjects');
+    document.getElementById('subjectsTableWrap').innerHTML=`<table class="data-table">
+      <thead><tr><th>Emoji</th><th>Name</th><th>Slug</th><th>Description</th><th>Order</th></tr></thead>
+      <tbody>${subs.map(s=>`<tr><td style="font-size:20px">${s.emoji}</td><td><strong>${s.name}</strong></td><td><code>${s.slug}</code></td><td>${s.description||'—'}</td><td>${s.sort_order}</td></tr>`).join('')}</tbody></table>`;
+  }catch(e){document.getElementById('subjectsTableWrap').innerHTML=`<p style="color:var(--red)">${e.message}</p>`;}
+}
+
+function openSubjectModal(){openModal('subjectModal');}
+
+async function saveSubject(){
+  const body={name:document.getElementById('sName').value,slug:document.getElementById('sSlug').value,emoji:document.getElementById('sEmoji').value,description:document.getElementById('sDesc').value,sort_order:document.getElementById('sOrder').value};
+  if(!body.name||!body.slug){toast('Name and slug required','error');return;}
+  try{await apiFetch('/admin/subjects',{method:'POST',body});toast('Subject created!','success');closeModal('subjectModal');loadAdminSubjects();subjectsList=[];}
+  catch(e){toast(e.message,'error');}
+}
+
+// Auto-generate slug from title
+document.getElementById('nTitle').addEventListener('input',function(){
+  if(!document.getElementById('editNoteId').value)
+    document.getElementById('nSlug').value=this.value.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+});
+
+loadDashboard();
+</script>
+</body>
+</html>

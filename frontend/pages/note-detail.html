@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Note Detail – Rahul Notes Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/css/global.css">
+<style>
+.detail-layout { max-width: 1100px; margin: 32px auto; padding: 0 2rem; display: grid; grid-template-columns: 1fr 340px; gap: 28px; }
+.note-hero { background: #fff; border-radius: var(--radius-lg); border: 1px solid var(--border); overflow: hidden; }
+.note-hero-thumb { height: 220px; display: flex; align-items: center; justify-content: center; font-size: 80px; position: relative; }
+.note-hero-body { padding: 28px; }
+.meta-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
+.chip { background: var(--paper); padding: 5px 14px; border-radius: 20px; font-size: 12px; color: var(--muted); font-weight: 500; }
+.stats-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin: 20px 0; }
+.stat-box { background: var(--paper); border-radius: 10px; padding: 14px; text-align: center; }
+.stat-box strong { display: block; font-size: 20px; font-weight: 700; }
+.stat-box span { font-size: 11px; color: var(--muted); }
+.includes-list { list-style: none; }
+.includes-list li { padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 14px; display: flex; align-items: center; gap: 8px; }
+.includes-list li::before { content: '✓'; color: var(--green); font-weight: 700; flex-shrink: 0; }
+.includes-list li:last-child { border-bottom: none; }
+
+/* Buy card */
+.buy-card { background: #fff; border-radius: var(--radius-lg); border: 1px solid var(--border); padding: 24px; position: sticky; top: 80px; }
+.price-display { font-size: 36px; font-weight: 700; color: var(--navy); margin-bottom: 4px; }
+.price-display.free { color: var(--green); }
+.original-price { font-size: 14px; color: var(--muted); text-decoration: line-through; }
+.coupon-row { display: flex; gap: 8px; margin: 14px 0; }
+.coupon-row input { flex: 1; }
+.guarantee { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); margin-top: 12px; padding: 10px; background: var(--green-light); border-radius: 8px; }
+
+/* Reviews */
+.review-card { background: var(--paper); border-radius: 10px; padding: 14px; margin-bottom: 10px; }
+.review-stars { color: var(--gold); font-size: 13px; }
+.review-text { font-size: 13px; color: var(--muted); margin: 6px 0; }
+.review-author { font-size: 12px; font-weight: 500; }
+
+/* Razorpay modal */
+.payment-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 1000; display: flex; align-items: center; justify-content: center; display: none; }
+.payment-box { background: #fff; border-radius: 16px; padding: 32px; max-width: 400px; width: 90%; text-align: center; }
+.payment-box h3 { font-family:'Playfair Display',serif; font-size: 20px; margin-bottom: 8px; }
+
+@media(max-width: 768px) { .detail-layout { grid-template-columns: 1fr; } .buy-card { position: static; } }
+</style>
+</head>
+<body>
+<script src="/assets/js/app.js"></script>
+<script>renderNav();</script>
+
+<div id="pageContent"><div class="spinner"></div></div>
+
+<div class="payment-overlay" id="payOverlay">
+  <div class="payment-box">
+    <div style="font-size:40px;margin-bottom:10px">💳</div>
+    <h3>Complete Payment</h3>
+    <p style="color:var(--muted);font-size:14px;margin-bottom:20px" id="payItemName"></p>
+    <div style="font-size:28px;font-weight:700;color:var(--navy);margin-bottom:6px" id="payAmount"></div>
+    <div id="discountLine" style="font-size:13px;color:var(--green);margin-bottom:16px;display:none"></div>
+    <button class="btn btn-saffron btn-full btn-lg" id="payBtn" onclick="launchRazorpay()">Pay Securely →</button>
+    <button class="btn btn-outline btn-full" style="margin-top:10px" onclick="document.getElementById('payOverlay').style.display='none'">Cancel</button>
+    <div style="font-size:11px;color:var(--muted);margin-top:12px">🔒 Secured by Razorpay · SSL Encrypted</div>
+  </div>
+</div>
+
+<script>
+const slug = new URLSearchParams(location.search).get('slug');
+let noteData = null, pendingOrderData = null;
+
+const thumbColors = {
+  polity:'linear-gradient(135deg,#E8F4FB,#C5DCF0)', history:'linear-gradient(135deg,#FDF3E3,#F0D99E)',
+  geography:'linear-gradient(135deg,#E8F5ED,#B7DABC)', economics:'linear-gradient(135deg,#FBE8F0,#F0B7CF)',
+  'science-tech':'linear-gradient(135deg,#EBE8FB,#C8B7F0)', ethics:'linear-gradient(135deg,#FFF5E8,#F5D5A0)',
+  'current-affairs':'linear-gradient(135deg,#E8FBF8,#A0E8DF)', environment:'linear-gradient(135deg,#F2FBE8,#C0E890)',
+  csat:'linear-gradient(135deg,#E8F0FB,#B7CAEC)', essay:'linear-gradient(135deg,#FBF0E8,#F0C8A0)',
+};
+
+async function loadNote() {
+  if (!slug) { document.getElementById('pageContent').innerHTML = '<div class="empty-state"><div class="empty-icon">❌</div><p>Note not found.</p></div>'; return; }
+  try {
+    noteData = await apiFetch('/notes/' + slug);
+    renderNote();
+  } catch(e) {
+    document.getElementById('pageContent').innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><p>${e.message}</p></div>`;
+  }
+}
+
+function renderNote() {
+  const n = noteData;
+  const bg = thumbColors[n.subject_slug] || 'linear-gradient(135deg,#F0EDE8,#E0DCD5)';
+  const canAccess = n.is_free || n.hasPurchased;
+
+  document.title = n.title + ' – Rahul Notes Hub';
+
+  document.getElementById('pageContent').innerHTML = `
+    <div class="detail-layout">
+      <div>
+        <div class="note-hero">
+          <div class="note-hero-thumb" style="background:${bg}">
+            <span>${n.emoji || '📄'}</span>
+            <span class="badge ${n.is_free?'badge-free':'badge-paid'}" style="position:absolute;top:14px;right:14px;font-size:13px;padding:5px 14px">${n.is_free?'FREE':'₹'+n.price}</span>
+          </div>
+          <div class="note-hero-body">
+            <div style="font-size:12px;text-transform:uppercase;letter-spacing:1.5px;color:var(--saffron);font-weight:600;margin-bottom:6px">${n.subject_name||''}</div>
+            <h1 style="font-family:'Playfair Display',serif;font-size:26px;line-height:1.2;margin-bottom:10px">${n.title}</h1>
+            <p style="color:var(--muted);font-size:15px;line-height:1.6">${n.description||''}</p>
+            <div class="meta-chips">
+              <span class="chip">📄 ${n.pages} pages</span>
+              <span class="chip">🌐 ${n.language}</span>
+              <span class="chip">🎯 ${n.exam_type}</span>
+              <span class="chip">⬇ ${(n.downloads||0).toLocaleString()} downloads</span>
+            </div>
+            <div class="stats-row">
+              <div class="stat-box"><strong>${n.pages}</strong><span>Pages</span></div>
+              <div class="stat-box"><strong>${n.rating}★</strong><span>Rating</span></div>
+              <div class="stat-box"><strong>${(n.downloads||0).toLocaleString()}</strong><span>Downloads</span></div>
+            </div>
+
+            <h3 style="font-size:15px;font-weight:600;margin-bottom:12px">What's Included</h3>
+            <ul class="includes-list">
+              <li>Complete ${n.subject_name} coverage for UPSC ${n.exam_type}</li>
+              <li>Exam-focused concise notes with key facts highlighted</li>
+              <li>Previous Year Questions (PYQ) analysis</li>
+              <li>Important diagrams, maps & charts</li>
+              <li>Printable PDF format – study anywhere</li>
+              ${n.is_free ? '<li>Free forever – no payment needed</li>' : '<li>Lifetime access after purchase</li>'}
+            </ul>
+          </div>
+        </div>
+
+        <!-- Reviews -->
+        <div style="margin-top:24px">
+          <h3 style="font-family:'Playfair Display',serif;font-size:20px;margin-bottom:16px">Student Reviews</h3>
+          <div id="reviewsList">
+            ${(n.reviews||[]).length === 0 ? '<div class="empty-state"><div class="empty-icon">💬</div><p>No reviews yet. Be the first!</p></div>' :
+              n.reviews.map(r => `
+                <div class="review-card">
+                  <div class="review-stars">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</div>
+                  <div class="review-text">${r.comment||'Great notes!'}</div>
+                  <div class="review-author">${r.user_name} · ${formatDate(r.created_at)}</div>
+                </div>`).join('')}
+          </div>
+          ${canAccess ? `
+          <div style="background:#fff;border-radius:var(--radius-md);border:1px solid var(--border);padding:20px;margin-top:16px">
+            <h4 style="font-size:14px;font-weight:600;margin-bottom:12px">Write a Review</h4>
+            <div style="display:flex;gap:6px;margin-bottom:10px;font-size:24px" id="starPicker">
+              ${[1,2,3,4,5].map(i=>`<span style="cursor:pointer;opacity:0.4" data-star="${i}" onclick="selectStar(${i})">★</span>`).join('')}
+            </div>
+            <textarea class="form-input" id="reviewComment" rows="3" placeholder="Share your experience…" style="resize:vertical"></textarea>
+            <button class="btn btn-primary" style="margin-top:10px" onclick="submitReview(${n.id})">Submit Review</button>
+          </div>` : ''}
+        </div>
+      </div>
+
+      <!-- BUY CARD -->
+      <div>
+        <div class="buy-card">
+          ${n.is_free ? `
+            <div class="price-display free">FREE</div>
+            <p style="color:var(--muted);font-size:13px;margin-bottom:18px">This note is completely free</p>
+            <button class="btn btn-green btn-full btn-lg" onclick="claimFree(${n.id})">⬇ Download Free Now</button>
+          ` : n.hasPurchased ? `
+            <div style="background:var(--green-light);border-radius:10px;padding:12px;text-align:center;margin-bottom:16px">
+              <div style="font-size:20px">✅</div>
+              <div style="font-size:14px;font-weight:600;color:var(--green)">Already Purchased</div>
+            </div>
+            <button class="btn btn-green btn-full btn-lg" onclick="downloadNote(${n.id})">⬇ Download PDF</button>
+          ` : `
+            <div class="price-display">₹${n.price}</div>
+            <p style="color:var(--muted);font-size:13px;margin-bottom:4px">One-time payment · Lifetime access</p>
+            <div class="coupon-row">
+              <input class="form-input" type="text" id="couponInput" placeholder="Coupon code" style="text-transform:uppercase" />
+              <button class="btn btn-outline" onclick="applyCoupon(${n.price})">Apply</button>
+            </div>
+            <div id="couponMsg" style="font-size:12px;margin-bottom:10px;display:none"></div>
+            <button class="btn btn-saffron btn-full btn-lg" onclick="initiatePayment(${n.id})">🛒 Buy Now – ₹${n.price}</button>
+            <div class="guarantee">🛡️ 7-day money back guarantee if not satisfied</div>
+          `}
+          <div style="margin-top:18px;padding-top:18px;border-top:1px solid var(--border)">
+            <div style="font-size:12px;color:var(--muted);text-align:center;line-height:1.8">
+              🔒 Secure payment via Razorpay<br>
+              📱 Access on any device<br>
+              📄 Instant PDF download<br>
+              ♾ Lifetime access
+            </div>
+          </div>
+          <button class="btn btn-outline btn-full" style="margin-top:12px" onclick="toggleWishlist(${n.id})">🤍 Save to Wishlist</button>
+        </div>
+
+        <div style="background:#fff;border-radius:var(--radius-lg);border:1px solid var(--border);padding:20px;margin-top:16px">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:10px">Subject</div>
+          <div style="font-size:14px;font-weight:500">${n.subject_name}</div>
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin:12px 0 6px">Tags</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">
+            ${(n.tags||'').split(',').filter(Boolean).map(t=>`<span class="chip">${t.trim()}</span>`).join('')}
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+let selectedStar = 0;
+function selectStar(s) {
+  selectedStar = s;
+  document.querySelectorAll('#starPicker span').forEach((el,i) => el.style.opacity = i < s ? '1' : '0.3');
+}
+
+async function submitReview(noteId) {
+  if (!selectedStar) { toast('Please select a star rating', 'error'); return; }
+  const comment = document.getElementById('reviewComment').value;
+  try {
+    await apiFetch('/notes/' + noteId + '/review', { method: 'POST', body: { rating: selectedStar, comment } });
+    toast('Review submitted! Thank you.', 'success');
+    setTimeout(() => location.reload(), 1000);
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+let appliedDiscount = 0;
+async function applyCoupon(price) {
+  const code = document.getElementById('couponInput')?.value.trim();
+  if (!code) return;
+  if (!requireLogin()) return;
+  try {
+    const data = await apiFetch('/payment/coupon/validate', { method:'POST', body:{ code, amount: price } });
+    appliedDiscount = data.discount;
+    const msg = document.getElementById('couponMsg');
+    msg.style.display = 'block'; msg.style.color = 'var(--green)';
+    msg.textContent = `✅ Coupon applied! You save ₹${data.discount}. Final: ₹${data.final_amount}`;
+    toast('Coupon applied! Saving ₹' + data.discount, 'success');
+  } catch(e) { 
+    const msg = document.getElementById('couponMsg');
+    msg.style.display = 'block'; msg.style.color = 'var(--red)';
+    msg.textContent = '❌ ' + e.message;
+  }
+}
+
+async function initiatePayment(noteId) {
+  if (!requireLogin()) return;
+  const code = document.getElementById('couponInput')?.value.trim() || null;
+  try {
+    const order = await apiFetch('/payment/create-order', { method:'POST', body:{ note_id: noteId, coupon_code: code } });
+    pendingOrderData = order;
+    document.getElementById('payItemName').textContent = noteData.title;
+    document.getElementById('payAmount').textContent = '₹' + order.amount;
+    if (order.discount > 0) {
+      document.getElementById('discountLine').style.display = 'block';
+      document.getElementById('discountLine').textContent = `You saved ₹${order.discount}!`;
+    }
+    document.getElementById('payOverlay').style.display = 'flex';
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function launchRazorpay() {
+  if (!pendingOrderData) return;
+  const user = Auth.getUser();
+  const options = {
+    key: pendingOrderData.key_id,
+    amount: pendingOrderData.amount * 100,
+    currency: 'INR',
+    name: 'Rahul Notes Hub',
+    description: pendingOrderData.item_title,
+    order_id: pendingOrderData.order_id,
+    prefill: { name: user?.name, email: user?.email },
+    theme: { color: '#E8521A' },
+    handler: async function(response) {
+      document.getElementById('payOverlay').style.display = 'none';
+      try {
+        await apiFetch('/payment/verify', { method:'POST', body:{
+          razorpay_order_id: response.razorpay_order_id,
+          razorpay_payment_id: response.razorpay_payment_id,
+          razorpay_signature: response.razorpay_signature,
+          db_order_id: pendingOrderData.db_order_id
+        }});
+        toast('Payment successful! Downloading…', 'success');
+        setTimeout(() => location.reload(), 1200);
+      } catch(e) { toast('Payment verification failed: ' + e.message, 'error'); }
+    },
+    modal: { ondismiss: () => { document.getElementById('payOverlay').style.display = 'none'; } }
+  };
+
+  if (window.Razorpay) {
+    new window.Razorpay(options).open();
+  } else {
+    // Test mode - simulate payment
+    toast('Test mode: Simulating payment…', 'info');
+    setTimeout(async () => {
+      try {
+        await apiFetch('/payment/verify', { method:'POST', body:{
+          razorpay_order_id: pendingOrderData.order_id,
+          razorpay_payment_id: 'pay_test_' + Date.now(),
+          razorpay_signature: 'test_sig',
+          db_order_id: pendingOrderData.db_order_id
+        }});
+        toast('Payment successful! Note unlocked 🎉', 'success');
+        document.getElementById('payOverlay').style.display = 'none';
+        setTimeout(() => location.reload(), 1200);
+      } catch(e) { toast(e.message, 'error'); }
+    }, 1500);
+  }
+}
+
+async function claimFree(noteId) {
+  if (!requireLogin()) return;
+  try {
+    await apiFetch('/payment/free-claim', { method:'POST', body:{ note_id: noteId } });
+    toast('Added to your library! Downloading…', 'success');
+    setTimeout(() => downloadNote(noteId), 800);
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function downloadNote(noteId) {
+  if (!requireLogin()) return;
+  try {
+    const data = await apiFetch('/notes/' + noteId + '/download');
+    toast('Download started! ✅', 'success');
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function toggleWishlist(noteId) {
+  if (!requireLogin()) return;
+  try {
+    const r = await apiFetch('/notes/' + noteId + '/wishlist', { method:'POST' });
+    toast(r.wishlisted ? 'Added to wishlist ❤️' : 'Removed from wishlist', 'info');
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+// Load Razorpay script
+const rz = document.createElement('script');
+rz.src = 'https://checkout.razorpay.com/v1/checkout.js';
+document.head.appendChild(rz);
+
+loadNote();
+</script>
+<script>renderFooter();</script>
+</body>
+</html>
